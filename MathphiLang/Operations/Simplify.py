@@ -26,21 +26,22 @@ class Simplify(Operation):
         pass
     def expr_from_nodes(self,stack):
         s = stack.copy()
-        while len(s)>0:
+        while len(s)>1:
              right = s.pop()
              left = s.pop()
              op = s.pop()
              if isinstance(op,Pow):
-                 result = left ** right
+                 result = Pow(left , right, evaluate=False)
                  s.append(result)
                  continue
              if isinstance(op,Mul):
-                 result = left * right
+                 result = Mul(left , right, evaluate= False)
                  s.append(result)
                  continue
              if isinstance(op,Add):
-                 result = left + right
+                 result = Add(left , right ,evaluate= False)
                  s.append(result)
+                 
                  continue
         return s[0]     
         
@@ -54,7 +55,7 @@ class Simplify(Operation):
         is_division = False
         is_subtraction =False
         
-        while len(stack) > 0 :
+        while len(stack) > 1 :
             right = stack.pop()
             left = stack.pop()
             op = stack.pop()
