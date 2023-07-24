@@ -71,7 +71,6 @@ class Simplify(Operation):
         for arg in preorder_traversal(expr):
             stack.append(arg)
         is_division = False
-        is_subtraction =False
         insertion_index = 0
         while len(stack) > 1 :
             right = stack.pop()
@@ -112,11 +111,12 @@ class Simplify(Operation):
 
                     if not (right.is_number and left.is_number):
                         continue
-                    if isinstance(left,NegativeOne):
+                    #check if mul represents the negative sign if yes : don't describe the step
+                    if isinstance(left,NegativeOne) or isinstance(right,NegativeOne):
                         is_subtraction = True
                         stack.append(op)
                     else:
-                        is_subtraction = False
+                        
                         result = left * right
                         result = simplify(result)
                         stack.append(result)
@@ -126,26 +126,16 @@ class Simplify(Operation):
 
                 continue
             if isinstance(op,Add):
-                if is_subtraction:
-                    result = left - right
-                    result = simplify(result)
-                    stack.append(result)
-                    stepResult = latex(self.expr_from_nodes(stack))
+                result = left + right
+                result = simplify(result)
+                stack.append(result)
+                stepResult = latex(self.expr_from_nodes(stack))
+                if (left * right).is_negative:
                     steps.append((stepResult,'stepDescription: subtraction is performed'))
-                    is_subtraction = False
+                elif (left * right ).is_positive:
+                    steps.append((stepResult,'stepDescription: addition is performed'))
                 else:
-                    if not (right.is_number and left.is_number):
-                        continue
-                    if isinstance(left,NegativeOne):
-                        is_subtraction = True
-                        stack.append(op)
-                    else:
-                        is_subtraction = False
-                        result = left + right
-                        result = simplify(result)
-                        stack.append(result)
-                        stepResult = latex(self.expr_from_nodes(stack))
-                        steps.append((stepResult,'stepDescription: addition is performed'))
+                    steps.append((stepResult,"stepDescription: zero doesn't change anything "))
 
                 continue
             if op.is_number:
