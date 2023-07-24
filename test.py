@@ -13,5 +13,5 @@ nodes = []
 nodes.append(expr)
 s = Simplify(nodes,sol)
 print(s.simplify_basic_ops())
-print_tree(expr.parsed_latex)
+
     

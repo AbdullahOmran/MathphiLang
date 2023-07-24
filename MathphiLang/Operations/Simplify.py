@@ -1,3 +1,13 @@
+#TODO 
+# chenge line 107
+
+
+
+
+
+
+
+
 from .Operation import Operation
 from ..Core.TokenType import TokenType
 from ..MathLiterals.MathLiteral import MathLiteral
@@ -26,6 +36,7 @@ class Simplify(Operation):
         pass
     def expr_from_nodes(self,stack):
         s = stack.copy()
+        insertion_index = 0
         while len(s)>1:
              right = s.pop()
              left = s.pop()
@@ -43,6 +54,13 @@ class Simplify(Operation):
                  s.append(result)
                  
                  continue
+             if op.is_number:
+                insertion_index += 1
+                s.insert(insertion_index,right)
+                insertion_index +=2
+                s.insert(insertion_index,left)
+                s.append(op)
+                continue
         return s[0]     
         
     # simplify parts of expr like ' 2+3-5*4 + 2**3'
@@ -54,7 +72,7 @@ class Simplify(Operation):
             stack.append(arg)
         is_division = False
         is_subtraction =False
-        
+        insertion_index = 0
         while len(stack) > 1 :
             right = stack.pop()
             left = stack.pop()
@@ -89,7 +107,7 @@ class Simplify(Operation):
                     stack.append(result)
                     stepResult = latex(self.expr_from_nodes(stack))
                     steps.append((stepResult,'stepDescription: division is performed'))
-                    
+                    is_division = False
                 else:
 
                     if not (right.is_number and left.is_number):
@@ -114,6 +132,7 @@ class Simplify(Operation):
                     stack.append(result)
                     stepResult = latex(self.expr_from_nodes(stack))
                     steps.append((stepResult,'stepDescription: subtraction is performed'))
+                    is_subtraction = False
                 else:
                     if not (right.is_number and left.is_number):
                         continue
@@ -128,6 +147,13 @@ class Simplify(Operation):
                         stepResult = latex(self.expr_from_nodes(stack))
                         steps.append((stepResult,'stepDescription: addition is performed'))
 
+                continue
+            if op.is_number:
+                insertion_index +=1
+                stack.insert(insertion_index,right)
+                insertion_index +=2
+                stack.insert(insertion_index,left)
+                stack.append(op)
                 continue
         return steps
 
