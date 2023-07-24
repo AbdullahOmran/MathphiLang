@@ -1,7 +1,7 @@
 
-from MathphiLang.Core.Node import Node
-from MathphiLang.Core.TokenType import TokenType
-from MathphiLang.MathLiterals.MathLiteral import MathLiteral
+from ..Core.Node import Node
+from ..Core.TokenType import TokenType
+from ..MathLiterals.MathLiteral import MathLiteral
 # non-terminals
 class Operation(Node):
     def __init__(self,op: TokenType,children: list):

@@ -1,5 +1,5 @@
-from MathphiLang.Core.Token import Token
-from MathphiLang.Core.TokenType import TokenType
+from .Token import Token
+from .TokenType import TokenType
 
 class Lexer(object):
     def __init__(self,text):
@@ -7,7 +7,7 @@ class Lexer(object):
         self.pos = 0
         self.current_char = self.text[self.pos]
     def error(self):
-        raise Exception('invalid character')
+        raise Exception('invalid word')
     
     def advance(self):
         # move the pos a forward step
@@ -32,19 +32,37 @@ class Lexer(object):
                 continue
             if self.current_char.isdigit():
                integer_value =  self.integer()
-               return Token(token_type = TokenType.INTEGER , value = integer_value)
+               token = Token(token_type = TokenType.INTEGER , value = integer_value)
+               token.length = len(str(integer_value))
+               token.start = self.pos - token.length
+               return token
             # get latex expression
             if self.current_char =='$':
                 latex = self.latex()
-                return Token(token_type = TokenType.EXPR, value = latex)
+                token = Token(token_type = TokenType.EXPR, value = latex)
+                
+                token.length = len(str(latex))+4
+                token.start = self.pos - token.length
+                return token
             if self.current_char.isalpha():
                 word = self.word()
+                
                 if (word == TokenType.FACTORIZE.value):
-                    return Token(token_type = TokenType.FACTORIZE, value = word)
+                    token =  Token(token_type = TokenType.FACTORIZE, value = word)
+                    
+                    token.length = len(str(word))
+                    token.start = self.pos - token.length
+                    return token
                 if (word == TokenType.EXPAND.value):
-                    return Token(token_type = TokenType.EXPAND, value = word)
+                    token =  Token(token_type = TokenType.EXPAND, value = word)
+                    token.length = len(str(word))
+                    token.start = self.pos - token.length
+                    return token
             self.error()
-        return Token(token_type = TokenType.EOF,value = None)
+        token = Token(token_type = TokenType.EOF,value = None)
+        token.length = len(str(self.text))
+        token.start = self.pos - token.length
+        return token
             
     def integer(self):
         integer_value = ''

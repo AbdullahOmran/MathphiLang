@@ -1,7 +1,7 @@
-from MathphiLang.Core.NodeVisitor import NodeVisitor
-from MathphiLang.Core.TokenType import TokenType
-from MathphiLang.Core.Parser import Parser
-from MathphiLang.Core.Node import Node
+from .NodeVisitor import NodeVisitor
+from .TokenType import TokenType
+from .Parser import Parser
+from .Node import Node
 
 
 class Interpreter(NodeVisitor):

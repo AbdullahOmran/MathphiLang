@@ -1,5 +1,5 @@
-from MathphiLang.MathLiterals.MathLiteral import MathLiteral
-from MathphiLang.Core.Token import Token
+from .MathLiteral import MathLiteral
+from ..Core.Token import Token
 
 class Integer(MathLiteral):
     def __init__(self, token: Token):

@@ -1,4 +1,4 @@
-from MathphiLang.Core.TokenType import TokenType
+from .TokenType import TokenType
 
 class Token(object):
     def __init__(self,token_type: TokenType, value):

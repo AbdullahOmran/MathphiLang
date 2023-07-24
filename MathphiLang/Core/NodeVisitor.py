@@ -1,4 +1,4 @@
-from MathphiLang.Core.Node import Node
+from .Node import Node
 
 class NodeVisitor(object):
    

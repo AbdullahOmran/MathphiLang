@@ -1,11 +1,11 @@
 
-from MathphiLang.Core.Node import Node
-from MathphiLang.Core.TokenType import TokenType
-from MathphiLang.MathLiterals.Integer import Integer
-from MathphiLang.MathLiterals.Expr import Expr
-from MathphiLang.Core.Lexer import Lexer
-from MathphiLang.Operations.Factorize import Factorize
-from MathphiLang.Operations.Expand import Expand
+from .Node import Node
+from .TokenType import TokenType
+from ..MathLiterals.Integer import Integer
+from ..MathLiterals.Expr import Expr
+from .Lexer import Lexer
+from ..Operations.Factorize import Factorize
+from ..Operations.Expand import Expand
 
 
 
@@ -42,9 +42,14 @@ class Parser(object):
            if token.token_type == TokenType.INTEGER:
                self.eat(TokenType.INTEGER)
                literals.append(Integer(token))
+               
            elif token.token_type == TokenType.EXPR:
                self.eat(TokenType.EXPR)
                literals.append(Expr(token))
+           else:
+               self.error()
+         if len(literals)==0:
+             self.error()
          return literals
     
     def operation (self):
@@ -58,7 +63,8 @@ class Parser(object):
             self.eat(TokenType.EXPAND)
             literals= self.params()
             return Expand(literals)
-        
+        else:
+            self.error()
     
         
 

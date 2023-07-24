@@ -1,0 +1,3 @@
+
+class SolutionStep(object):
+    pass

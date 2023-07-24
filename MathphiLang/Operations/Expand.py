@@ -1,4 +1,4 @@
-from MathphiLang.Operations.Operation import Operation
+from .Operation import Operation
 
 class Expand(Operation):
     pass

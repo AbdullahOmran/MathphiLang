@@ -1,4 +1,4 @@
-from MathphiLang.Core.Node import Node
+from ..Core.Node import Node
 
 # terminals
 class MathLiteral(Node):

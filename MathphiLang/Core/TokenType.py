@@ -6,3 +6,5 @@ class TokenType(Enum):
     EXPR = 'EXPR'
     FACTORIZE = 'factorize'
     EXPAND = 'expand'
+    SIMPLIFY = 'simplify'
+    EVALUATE = 'evaluate'
