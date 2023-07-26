@@ -1,17 +1,16 @@
 from MathphiLang.MathLiterals.Expr import Expr
 from MathphiLang.Core.Token import Token
 from MathphiLang.Core.TokenType import TokenType
-from MathphiLang.Operations.Simplify import Simplify
+from MathphiLang.Operations.Simplify import Simplify, SimplifyArithmetic
 from MathphiLang.Solver.Solution import Solution
 from sympy.printing import print_tree
 from sympy.parsing.latex import parse_latex
-t = Token(TokenType.EXPR, r'-5/3+1+3^{2}')
+from sympy import srepr
+
+t = Token(TokenType.EXPR, r'(4+1)/2 +2+3*5 + 2^{3}+2-3*(3/4 - 2/(1+1) +(2-1)^(1-2))')
 expr = Expr(t)
 expr.parse()
-sol = Solution()
-nodes = []
-nodes.append(expr)
-s = Simplify(nodes,sol)
-print(s.simplify_basic_ops())
-
-    
+#print(srepr(expr.parsed_latex))
+s = SimplifyArithmetic(expr.parsed_latex)
+for sol in s.getSolution():
+    print(sol)
