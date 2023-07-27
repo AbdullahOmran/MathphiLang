@@ -51,7 +51,7 @@ class SimplifyArithmetic(object):
     
     def compute_Add(self,node):
         # addition and subtraction manipulation go here 
-        # such as numbers addition, roots addition, fraction addition, ..., and so on.
+        # involving numbers , roots , fraction , ..., and so on.
         # also, define a pattern starting with add node to be discovered here
         if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self.op_done:
             self.op_done = True
@@ -66,10 +66,18 @@ class SimplifyArithmetic(object):
         
     
     def compute_Mul(self,node):
-        if isinstance(node.args[0],Number) and isinstance(node.args[1],Number)and not self.op_done:
+        # multiplication and division manipulation go here 
+        # involving numbers , roots , fraction , ..., and so on.
+        # also, define a pattern starting with add node to be discovered here
+        if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self.op_done:
             self.op_done = True
-            return self.compute(node.args[0])*self.compute(node.args[1])
+            if(len(node.args) > 2):
+                return Mul(self.compute(node.args[0])*self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
+            return self.compute(node.args[0])*self.compute(node.args[1]) 
+        
         else:
+            if(len(node.args) > 2):
+                return Mul(self.compute(node.args[0]),self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
             return Mul(self.compute(node.args[0]), self.compute(node.args[1]), evaluate=False)
     
     def compute_Pow(self,node):
