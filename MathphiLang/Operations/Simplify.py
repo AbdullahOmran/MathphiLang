@@ -50,10 +50,18 @@ class SimplifyArithmetic(object):
         raise Exception(f'No compute_{type(node).__name__} method')
     
     def compute_Add(self,node):
+        # addition and subtraction manipulation go here 
+        # such as numbers addition, roots addition, fraction addition, ..., and so on.
+        # also, define a pattern starting with add node to be discovered here
         if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self.op_done:
             self.op_done = True
+            if(len(node.args) > 2):
+                return Add(self.compute(node.args[0])+self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
             return self.compute(node.args[0])+self.compute(node.args[1]) 
+        
         else:
+            if(len(node.args) > 2):
+                return Add(self.compute(node.args[0]),self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
             return Add(self.compute(node.args[0]), self.compute(node.args[1]), evaluate=False)
         
     
