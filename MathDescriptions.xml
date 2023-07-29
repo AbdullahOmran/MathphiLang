@@ -1,6 +1,12 @@
 <?xml version = "1.0" encoding = "UTF-8" ?>
 <mathDescriptions>
     <arithemticOperations>
-        <addition kind = "numbers" descriptionType = "brief">نجمع العددين {arg0} و {arg1}</addition>
+        <addition name="pos_pos" kind = "numbers" descriptionType = "brief">نجمع العددين {arg0} و {arg1}</addition>
+        <addition name = "zero_zero" kind = "numbers" descriptionType = "brief">لما نجمع صفر مع صفر يديني صفر</addition>
+        <addition name = "neg_neg" kind = "numbers" descriptionType = "brief">عددين ليهم نفس الاشارة ,يبقا نجمع وناخد نفس الاشارة</addition>
+        <addition name = "zero_pos" kind = "numbers" descriptionType = "brief">جمع صفر مع اي عدد يديني نفس العدد</addition>
+        <subtraction name = "zero_neg" kind = "numbers" descriptionType = "brief">صفر ناقص اي عدد يديني سالب العدد</subtraction>
+        <subtraction name = "pos_neg" kind = "numbers" descriptionType = "brief">نطرح العدد {arg0} من العدد {arg1}</subtraction>
+        <subtraction name = "opposite" kind = "numbers" descriptionType = "brief">عددين عكس بعض في الاشارة وليهم نفس القيمه يبقا يديني صفر</subtraction>
     </arithemticOperations>
 </mathDescriptions>

@@ -27,7 +27,6 @@ class Simplify(Operation):
         self.expr = children[0]
         self.solution = solution
         self.explainer = explainer
-        self.explainer.extractArithmeticDes()
         self._simplify_arithmetic = None
     
     # main method that causes the operation starting to manipulate the given expr
@@ -35,9 +34,9 @@ class Simplify(Operation):
         pass
         
     @property
-    def simplify_arithmetic(self):
+    def simplify_arithmetic(self)-> MathSequence:
         if self._simplify_arithmetic is None:
-            self._simplify_arithmetic = SimplifyArithmetic(self.expr)
+            self._simplify_arithmetic = SimplifyArithmetic(self.expr,self.explainer)
             return  self._simplify_arithmetic.getSolution
         else:
             return  self._simplify_arithmetic.getSolution
@@ -46,13 +45,15 @@ class Simplify(Operation):
     
 
 class SimplifyArithmetic(object):
-    def __init__(self,expr):
+    def __init__(self,expr,explainer: Explainer):
         self.expr = expr
         self.current_expr = self.expr
         self._op_done = False
         self._steps = []
         self._descriptions = []
         self._execute_calls_number = 0
+        self.explainer = explainer
+        self.explainer.extractArithmeticDes()
         self.mathSequence = MathSequence()
     def compute(self,node = None):
         if node is None:
@@ -70,10 +71,12 @@ class SimplifyArithmetic(object):
         # also, define a pattern starting with add node to be discovered here
         if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self._op_done:
             self._op_done = True
+            self._num_num_add(node)
+            # with multiple args
             if(len(node.args) > 2):
-                
                 result = Add(self.compute(node.args[0])+self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
                 return result
+            # with two args
             return self.compute(node.args[0])+self.compute(node.args[1]) 
         
         else:
@@ -85,7 +88,7 @@ class SimplifyArithmetic(object):
     def compute_Mul(self,node):
         # multiplication and division manipulation go here 
         # involving numbers , roots , fraction , ..., and so on.
-        # also, define a pattern starting with add node to be discovered here
+        # also, define a pattern starting with mul node to be discovered here
         if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self._op_done:
             self._op_done = True
             if(len(node.args) > 2):
@@ -154,3 +157,29 @@ class SimplifyArithmetic(object):
     def setExpr(self,expr):
         self.expr = expr
     
+    def _num_num_add(self,node):
+        num1,num2 = node.args[0],node.args[1]
+        if num1.is_positive and num2.is_positive:
+            self._descriptions.append(self.explainer.explainArithmetic('addition','pos_pos','numbers','brief',num1,num2))
+        elif num1.is_positive and num2.is_negative:
+            if num1 == -1*num2:
+                self._descriptions.append(self.explainer.explainArithmetic('subtraction','opposite','numbers','brief'))
+            else:
+                self._descriptions.append(self.explainer.explainArithmetic('subtraction','pos_neg','numbers','brief',-1*num2,num1))
+        elif num1.is_negative and num2.is_positive:
+            if num1 == -1* num2:
+                self._descriptions.append(self.explainer.explainArithmetic('subtraction','opposite','numbers','brief'))
+            else:
+                self._descriptions.append(self.explainer.explainArithmetic('subtraction','pos_neg','numbers','brief',-1*num1,num2))
+        elif num1.is_negative and num2.is_negative:
+                self._descriptions.append(self.explainer.explainArithmetic('addition','neg_neg','numbers','brief'))
+        elif num1.is_zero and num2.is_positive:
+                self._descriptions.append(self.explainer.explainArithmetic('addition','zero_pos','numbers','brief'))
+        elif num1.is_zero and num2.is_negative:
+                self._descriptions.append(self.explainer.explainArithmetic('subtraction','zero_neg','numbers','brief'))
+        elif num1.is_positive and num2.is_zero:
+                self._descriptions.append(self.explainer.explainArithmetic('addition','zero_pos','numbers','brief'))
+        elif num1.is_negative and num2.is_zero:
+                self._descriptions.append(self.explainer.explainArithmetic('subtraction','zero_neg','numbers','brief'))
+        elif num1.is_zero and num2.is_zero:
+                self._descriptions.append(self.explainer.explainArithmetic('addition','zero_zero','numbers','brief'))
