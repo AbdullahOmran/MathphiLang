@@ -1,8 +1,7 @@
 
-
 from collections.abc import Iterable
 
-class Solution(list):
+class GraphSequence(list):
 
     def __init__(self)->None:
         super().__init__()

@@ -1,6 +1,7 @@
-
 from .Operation import Operation
 from ..Core.TokenType import TokenType
+from ..Core.DataSet import Explainer
+from ..Solver.MathSequence import MathSequence
 from ..MathLiterals.MathLiteral import MathLiteral
 from ..Solver.Solution import Solution
 from ..MathLiterals.Expr import Expr
@@ -19,29 +20,43 @@ from sympy import latex
 
 
 class Simplify(Operation):
-    def __init__(self,children: list[Expr], solution: Solution):
+    def __init__(self,children: list[Expr], solution: Solution, explainer: Explainer):
         super().__init__(op =TokenType.SIMPLIFY, children = children)
         # assume that the expr is correctly written in latex form and successfully parsed
+        # assume that the explainer loaded the data outside
         self.expr = children[0]
         self.solution = solution
-        
+        self.explainer = explainer
+        self.explainer.extractArithmeticDes()
+        self._simplify_arithmetic = None
+    
     # main method that causes the operation starting to manipulate the given expr
     def execute(self):
         pass
-
+        
+    @property
     def simplify_arithmetic(self):
-        pass
+        if self._simplify_arithmetic is None:
+            self._simplify_arithmetic = SimplifyArithmetic(self.expr)
+            return  self._simplify_arithmetic.getSolution
+        else:
+            return  self._simplify_arithmetic.getSolution
+    
+    
     
 
 class SimplifyArithmetic(object):
     def __init__(self,expr):
         self.expr = expr
-        self.op_done = False
-        self.steps = []
-        self.execute_calls_number = 0
+        self.current_expr = self.expr
+        self._op_done = False
+        self._steps = []
+        self._descriptions = []
+        self._execute_calls_number = 0
+        self.mathSequence = MathSequence()
     def compute(self,node = None):
         if node is None:
-            node = self.expr
+            node = self.current_expr
         method_name = 'compute_' + type(node).__name__
         computer = getattr(self, method_name ,self.generic_compute)
         return computer(node)
@@ -53,10 +68,12 @@ class SimplifyArithmetic(object):
         # addition and subtraction manipulation go here 
         # involving numbers , roots , fraction , ..., and so on.
         # also, define a pattern starting with add node to be discovered here
-        if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self.op_done:
-            self.op_done = True
+        if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self._op_done:
+            self._op_done = True
             if(len(node.args) > 2):
-                return Add(self.compute(node.args[0])+self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
+                
+                result = Add(self.compute(node.args[0])+self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
+                return result
             return self.compute(node.args[0])+self.compute(node.args[1]) 
         
         else:
@@ -69,8 +86,8 @@ class SimplifyArithmetic(object):
         # multiplication and division manipulation go here 
         # involving numbers , roots , fraction , ..., and so on.
         # also, define a pattern starting with add node to be discovered here
-        if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self.op_done:
-            self.op_done = True
+        if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self._op_done:
+            self._op_done = True
             if(len(node.args) > 2):
                 return Mul(self.compute(node.args[0])*self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
             return self.compute(node.args[0])*self.compute(node.args[1]) 
@@ -81,8 +98,8 @@ class SimplifyArithmetic(object):
             return Mul(self.compute(node.args[0]), self.compute(node.args[1]), evaluate=False)
     
     def compute_Pow(self,node):
-        if isinstance(node.args[0],Number) and isinstance(node.args[1],Number)and not self.op_done:
-            self.op_done = True
+        if isinstance(node.args[0],Number) and isinstance(node.args[1],Number)and not self._op_done:
+            self._op_done = True
             return self.compute(node.args[0])**self.compute(node.args[1])
         else:
             return Pow(self.compute(node.args[0]), self.compute(node.args[1]), evaluate=False)   
@@ -109,26 +126,30 @@ class SimplifyArithmetic(object):
         return node
     
     def step(self):
-        if not isinstance(self.expr,Number):
-            self.steps.append(self.expr)
-            self.expr = self.compute()
-            self.op_done = False
-            self.execute_calls_number += 1
-            return self.expr
+        if not isinstance(self.current_expr,Number):
+            self._steps.append(self.current_expr)
+            self.current_expr = self.compute()
+            self._op_done = False
+            self._execute_calls_number += 1
+            return self.current_expr
         else:
-            if self.execute_calls_number == len(self.steps):
-                self.steps.append(self.expr)
+            if self._execute_calls_number == len(self._steps):
+                self._steps.append(self.current_expr)
+    
+    @property
     def getSolution(self):
 
         while self.step() is not None:
             self.step()
-
-        return self.steps
-    
+        self.mathSequence.descriptions = self._descriptions
+        self.mathSequence.steps = self._steps
+        self.mathSequence.construct_sequence()
+        return self.mathSequence
+    @property
     def restart(self):
-        self.execute_calls_number = 0
-        self.expr = self.steps[0]
-        self.steps = []
+        self._execute_calls_number = 0
+        self.current_expr = self.expr
+        self._steps = []
     
     def setExpr(self,expr):
         self.expr = expr

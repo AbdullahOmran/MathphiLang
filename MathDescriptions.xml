@@ -1,0 +1,6 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<mathDescriptions>
+    <arithemticOperations>
+        <addition kind = "numbers" descriptionType = "brief">نجمع العددين {arg0} و {arg1}</addition>
+    </arithemticOperations>
+</mathDescriptions>

@@ -1,3 +1,4 @@
 
 class SolutionStep(object):
-    pass
+    def __init__(self,*args) -> None:
+        self.args = args
