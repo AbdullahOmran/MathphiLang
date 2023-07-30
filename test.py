@@ -5,7 +5,7 @@ from MathphiLang.Operations.Simplify import Simplify, SimplifyArithmetic
 from MathphiLang.Solver.Solution import Solution
 from MathphiLang.Core.DataSet import Explainer
 from MathphiLang.Core.DataSet import Langs
-
+from sympy import sympify
 from sympy.printing import print_tree
 from sympy.parsing.latex import parse_latex
 from sympy import srepr
@@ -16,13 +16,14 @@ t = Token(TokenType.EXPR, r'1+2-0+(3-4)+1')
 expr = Expr(t)
 expr.parse()
 print(srepr(expr.parsed_latex))
-#expr = Mul(1,Add(1,1,1,evaluate=False),3,4, evaluate=False)
+expr = sympify('(1^(5/2))',evaluate=False)
+print(srepr(expr))
 exp = Explainer(lang = Langs.Egypt )
 exp.load(r'E:\MathphiLang\MathDescriptions.xml')
-s = SimplifyArithmetic(expr.parsed_latex,exp)
-for i in s.getSolution.sequence:
-    print(i)
-
+s = SimplifyArithmetic(expr,exp)
+#for i in s.getSolution.sequence:
+#    print(i)
+print(s._is_fraction(expr))
 
 #exp = Explainer()
 #exp.load(r'E:\MathphiLang\MathDescriptions.xml')

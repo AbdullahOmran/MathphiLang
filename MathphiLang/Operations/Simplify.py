@@ -10,14 +10,14 @@ from sympy.core.expr import Expr as Expression
 from sympy.core.add import Add
 from sympy.core.symbol import Symbol
 from sympy.core.mul import Mul
-from sympy.core.numbers import NegativeOne,Number
+from sympy.core.numbers import NegativeOne,Number,One
 from sympy.core.power import Pow
 from sympy.core.numbers import Float
 from sympy.core.numbers import Integer
 from sympy import preorder_traversal
 from sympy import simplify
 from sympy import latex
-
+from sympy.core.numbers import Rational
 
 class Simplify(Operation):
     def __init__(self,children: list[Expr], solution: Solution, explainer: Explainer):
@@ -69,15 +69,27 @@ class SimplifyArithmetic(object):
         # addition and subtraction manipulation go here 
         # involving numbers , roots , fraction , ..., and so on.
         # also, define a pattern starting with add node to be discovered here
-        if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self._op_done:
+        args_stack = []
+        first_arg, second_arg = None, None
+        for arg in node.args:
+            args_stack.append(arg)
+        while len(args_stack) >0:
+            first_arg, second_arg = args_stack.pop(),args_stack.pop()
+            if type(first_arg) is type(second_arg):
+                break
+            else:
+                args_stack.append(first_arg)
+                args_stack.insert(0,second_arg)
+
+        if isinstance(first_arg,Number) and isinstance(second_arg,Number) and not self._op_done:
             self._op_done = True
             self._num_num_add(node)
             # with multiple args
             if(len(node.args) > 2):
-                result = Add(self.compute(node.args[0])+self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
+                result = Add(self.compute(first_arg)+self.compute(second_arg),*args_stack,evaluate=False)
                 return result
             # with two args
-            return self.compute(node.args[0])+self.compute(node.args[1]) 
+            return self.compute(first_arg)+self.compute(second_arg) 
         
         else:
             if(len(node.args) > 2):
@@ -183,3 +195,51 @@ class SimplifyArithmetic(object):
                 self._descriptions.append(self.explainer.explainArithmetic('subtraction','zero_neg','numbers','brief'))
         elif num1.is_zero and num2.is_zero:
                 self._descriptions.append(self.explainer.explainArithmetic('addition','zero_zero','numbers','brief'))
+
+
+    # write functions that recognize certain patterns here 
+    def _is_root(self,node):
+        if self._is_power(node):
+            if self._is_fraction(node.args[1]) :
+                if isinstance(node.args[1],Rational):
+                    if node.args[1].p == 1:
+                         return True
+                if (isinstance(node.args[1].args[0],One) or isinstance(node.args[1].args[1],One)):
+                    return True
+        return False
+    
+    def _is_fraction(self,node):
+        if isinstance(node,Mul):
+            if (isinstance(node.args[0],Number) and isinstance(node.args[1],Pow)):
+                if isinstance(node.args[1].args[0],Number) and isinstance(node.args[1].args[1],NegativeOne):
+                    return True
+            elif (isinstance(node.args[1],Number) and isinstance(node.args[0],Pow)):
+                if isinstance(node.args[0].args[0],Number) and isinstance(node.args[0].args[1],NegativeOne):
+                    return True
+        elif isinstance(node,Rational):
+            if isinstance(node.p,int) and isinstance(node.q,int):
+                return True
+        return False
+    def _is_number(self,node):
+        return isinstance(node,Number)
+    
+    def _is_power(self,node):
+        if isinstance(node,Pow) :
+            if isinstance(node.args[0],Number):
+                if isinstance(node.args[1],Number):
+                    return True
+                elif self._is_fraction(node.args[1]) :
+                    return True
+                elif isinstance(node.args[1],Rational):
+                    if isinstance(node.args[1].p,int) and isinstance(node.args[1].q,int):
+                        return True
+        return False
+    
+    def _generate_fraction(self,num,denom):
+        pass
+
+    def _generate_root(self, rank):
+        pass
+
+    def _generate_power(self, base, exponent):
+        pass
