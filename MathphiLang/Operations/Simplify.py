@@ -18,6 +18,7 @@ from sympy import preorder_traversal
 from sympy import simplify
 from sympy import latex
 from sympy.core.numbers import Rational
+from sympy import sympify
 
 class Simplify(Operation):
     def __init__(self,children: list[Expr], solution: Solution, explainer: Explainer):
@@ -65,32 +66,50 @@ class SimplifyArithmetic(object):
     def generic_compute(self, node):
         raise Exception(f'No compute_{type(node).__name__} method')
     
+    def _sort_args(self,args):
+        first_arg,second_arg  = None, None
+        args_stack = []
+        for arg in args:
+            args_stack.append(arg)  
+        args_stack.reverse()
+        for i in args_stack:
+            first_arg = args_stack.pop()
+            # return similar types if exits 
+            for (arg2, index) in zip(args_stack,range(len(args_stack))):
+                if self.classify_expr(first_arg) == self.classify_expr(arg2):
+                    second_arg = arg2
+                    del args_stack[index]
+                    return first_arg, second_arg, args_stack
+            # code for different types exiting in the stack
+            if self.classify_expr(first_arg) in ('number','fraction'):
+                for (arg2,index) in zip(args_stack,range(len(args_stack))):
+                    if self.classify_expr(arg2) in ('number','fraction'):
+                        second_arg = arg2
+                        del args_stack[index]
+                        return first_arg, second_arg, args_stack
+            first_arg = args_stack.insert(0,first_arg)
+        
+        # otherwise return the first two args
+        first_arg = args_stack.pop()
+        second_arg = args_stack.pop()
+        return first_arg, second_arg , args_stack
+
     def compute_Add(self,node):
         # addition and subtraction manipulation go here 
         # involving numbers , roots , fraction , ..., and so on.
         # also, define a pattern starting with add node to be discovered here
-        args_stack = []
-        first_arg, second_arg = None, None
-        for arg in node.args:
-            args_stack.append(arg)
-        while len(args_stack) >0:
-            first_arg, second_arg = args_stack.pop(),args_stack.pop()
-            if type(first_arg) is type(second_arg):
-                break
-            else:
-                args_stack.append(first_arg)
-                args_stack.insert(0,second_arg)
+       
+        if self._has_ready_args(node):
 
-        if isinstance(first_arg,Number) and isinstance(second_arg,Number) and not self._op_done:
-            self._op_done = True
-            self._num_num_add(node)
-            # with multiple args
-            if(len(node.args) > 2):
-                result = Add(self.compute(first_arg)+self.compute(second_arg),*args_stack,evaluate=False)
-                return result
-            # with two args
-            return self.compute(first_arg)+self.compute(second_arg) 
-        
+            first_arg, second_arg, args_stack = self._sort_args(node.args)
+            
+            if self._is_number(first_arg) and self._is_number(second_arg) and not self._op_done:
+                return self._num_num_add(first_arg, second_arg, args_stack) 
+             
+            else:
+                if(len(args_stack) > 0):
+                    return Add(self.compute(first_arg),self.compute(second_arg),*args_stack,evaluate=False)
+                return Add(self.compute(first_arg), self.compute(second_arg), evaluate=False)
         else:
             if(len(node.args) > 2):
                 return Add(self.compute(node.args[0]),self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
@@ -169,8 +188,9 @@ class SimplifyArithmetic(object):
     def setExpr(self,expr):
         self.expr = expr
     
-    def _num_num_add(self,node):
-        num1,num2 = node.args[0],node.args[1]
+    def _num_num_add(self,first_arg, second_arg, args_stack):
+        self._op_done = True
+        num1,num2 = first_arg,second_arg
         if num1.is_positive and num2.is_positive:
             self._descriptions.append(self.explainer.explainArithmetic('addition','pos_pos','numbers','brief',num1,num2))
         elif num1.is_positive and num2.is_negative:
@@ -195,6 +215,12 @@ class SimplifyArithmetic(object):
                 self._descriptions.append(self.explainer.explainArithmetic('subtraction','zero_neg','numbers','brief'))
         elif num1.is_zero and num2.is_zero:
                 self._descriptions.append(self.explainer.explainArithmetic('addition','zero_zero','numbers','brief'))
+        # with multiple args
+        if(len(args_stack) > 0):
+            result = Add(self.compute(first_arg)+self.compute(second_arg),*args_stack,evaluate=False)
+            return result
+                # with two args
+        return self.compute(first_arg)+self.compute(second_arg)
 
 
     # write functions that recognize certain patterns here 
@@ -234,12 +260,52 @@ class SimplifyArithmetic(object):
                     if isinstance(node.args[1].p,int) and isinstance(node.args[1].q,int):
                         return True
         return False
+    def classify_expr(self,node):
+        if self._is_number(node):
+            return 'number'
+        elif self._is_fraction(node):
+            return 'fraction'
+        elif self._is_power(node):
+            return 'power'
+        elif self._is_root(node):
+            return 'root'
+        else:
+            return type(node)
     
-    def _generate_fraction(self,num,denom):
-        pass
+    # functions for generating a certain expr
+    def _generate_fraction(self,num,denom, evaluate =False ):
+        if isinstance(num,int) and isinstance(denom,int):
+            return sympify(f'{num}/{denom}',evaluate=evaluate)
+        return Mul(num,Pow(denom,-1,evaluate=evaluate),evaluate=evaluate)
 
-    def _generate_root(self, rank):
-        pass
+    def _generate_root(self,number, rank ,evaluate = False):
+        if isinstance(number,Number):
+            return sympify(f'{number}^(1/{rank})',evaluate=evaluate)
+        return Pow(number,Rational(1,rank),evaluate=evaluate)
 
-    def _generate_power(self, base, exponent):
-        pass
+    def _generate_power(self, base, exponent, evaluate = False):
+        if isinstance(base,Number) and isinstance(exponent,Number):
+            return sympify(f'{base}^{exponent}',evaluate=evaluate)
+        return Pow(base,exponent,evaluate=evaluate)
+    
+    def _generate_subtraction(self,num1,num2,evaluate= False):
+        return sympify(f'{num1}-{num2}',evaluate=evaluate)
+    
+    def _has_ready_args(self,node):
+        if node.args is not None:
+            for arg in node.args:
+                if self._is_number(arg):
+                    continue
+                elif self._is_fraction(arg):
+                    continue
+                elif self._is_number(arg):
+                    continue
+                elif self._is_power(arg):
+                    continue
+                elif self._is_root(arg):
+                    continue
+                else:
+                    return False
+            return True
+        return False
+  

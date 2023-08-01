@@ -15,15 +15,15 @@ from sympy.core.mul import Mul
 t = Token(TokenType.EXPR, r'1+2-0+(3-4)+1')
 expr = Expr(t)
 expr.parse()
-print(srepr(expr.parsed_latex))
-expr = sympify('(1^(5/2))',evaluate=False)
-print(srepr(expr))
+#print(srepr(expr.parsed_latex))
+#expr = sympify('(1^(5/2))',evaluate=False)
+#print(srepr(expr))
 exp = Explainer(lang = Langs.Egypt )
 exp.load(r'E:\MathphiLang\MathDescriptions.xml')
-s = SimplifyArithmetic(expr,exp)
-#for i in s.getSolution.sequence:
-#    print(i)
-print(s._is_fraction(expr))
+s = SimplifyArithmetic(expr.parsed_latex,exp)
+for i in s.getSolution.sequence:
+    print(i)
+
 
 #exp = Explainer()
 #exp.load(r'E:\MathphiLang\MathDescriptions.xml')
