@@ -56,6 +56,8 @@ class SimplifyArithmetic(object):
         self.explainer = explainer
         self.explainer.extractArithmeticDes()
         self.mathSequence = MathSequence()
+        # this var is used for the case of (2*1)/3 to terminate infinite loop by converting that frac to rational
+        self._converted_to_rational = False
     def compute(self,node = None):
         if node is None:
             node = self.current_expr
@@ -66,6 +68,9 @@ class SimplifyArithmetic(object):
     def generic_compute(self, node):
         raise Exception(f'No compute_{type(node).__name__} method')
     
+    def _sort_args_mul(self,args):
+        pass
+
     def _sort_args(self,args):
         first_arg,second_arg  = None, None
         args_stack = []
@@ -104,8 +109,17 @@ class SimplifyArithmetic(object):
             first_arg, second_arg, args_stack = self._sort_args(node.args)
             
             if self._is_number(first_arg) and self._is_number(second_arg) and not self._op_done:
-                return self._num_num_add(first_arg, second_arg, args_stack) 
-             
+                return self._num_num_add(first_arg, second_arg, args_stack)
+            
+            elif  self._is_fraction(first_arg) and self._is_fraction(second_arg) and not self._op_done:
+                return self._frac_frac_add(first_arg,second_arg,args_stack)
+            
+            elif  self._is_fraction(first_arg) and self._is_number(second_arg) and not self._op_done:
+                return self._num_frac_add(second_arg,first_arg,args_stack)
+            
+            elif  self._is_fraction(second_arg) and self._is_number(first_arg) and not self._op_done:
+                return self._num_frac_add(first_arg,second_arg,args_stack)
+            
             else:
                 if(len(args_stack) > 0):
                     return Add(self.compute(first_arg),self.compute(second_arg),*args_stack,evaluate=False)
@@ -117,15 +131,29 @@ class SimplifyArithmetic(object):
         
     
     def compute_Mul(self,node):
-        # multiplication and division manipulation go here 
+        # multiplication manipulation go here 
         # involving numbers , roots , fraction , ..., and so on.
         # also, define a pattern starting with mul node to be discovered here
-        if isinstance(node.args[0],Number) and isinstance(node.args[1],Number) and not self._op_done:
-            self._op_done = True
-            if(len(node.args) > 2):
-                return Mul(self.compute(node.args[0])*self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
-            return self.compute(node.args[0])*self.compute(node.args[1]) 
-        
+        if self._has_ready_args(node):
+
+            first_arg, second_arg, args_stack = self._sort_args(node.args)
+            
+            if self._is_number(first_arg) and self._is_number(second_arg) and not self._op_done:
+                return self._num_num_mul(first_arg, second_arg, args_stack)
+            
+            elif  self._is_fraction(first_arg) and self._is_fraction(second_arg) and not self._op_done:
+                return self._frac_frac_mul(first_arg,second_arg,args_stack)
+            
+            elif  self._is_fraction(first_arg) and self._is_number(second_arg) and not self._op_done:
+                return self._num_frac_mul(second_arg,first_arg,args_stack)
+            
+            elif  self._is_fraction(second_arg) and self._is_number(first_arg) and not self._op_done:
+                return self._num_frac_mul(first_arg,second_arg,args_stack)
+            
+            else:
+                if(len(args_stack) > 0):
+                    return Mul(self.compute(first_arg),self.compute(second_arg),*args_stack,evaluate=False)
+                return Mul(self.compute(first_arg), self.compute(second_arg), evaluate=False)
         else:
             if(len(node.args) > 2):
                 return Mul(self.compute(node.args[0]),self.compute(node.args[1]),*[self.compute(arg) for arg in node.args[2:]],evaluate=False)
@@ -187,7 +215,139 @@ class SimplifyArithmetic(object):
     
     def setExpr(self,expr):
         self.expr = expr
-    
+
+    def _num_num_mul(self, first_arg, second_arg,args_stack):
+        self._op_done = True
+        num1,num2 = first_arg,second_arg
+        if num1.is_positive and num2.is_positive:
+            self._descriptions.append('')
+        elif num1.is_positive and num2.is_negative:
+            if num1 == -1*num2:
+                self._descriptions.append('')
+            else:
+                self._descriptions.append('')
+        elif num1.is_negative and num2.is_positive:
+            if num1 == -1* num2:
+                self._descriptions.append('')
+            else:
+                self._descriptions.append('')
+        elif num1.is_negative and num2.is_negative:
+                self._descriptions.append('')
+        elif num1.is_zero and num2.is_positive:
+                self._descriptions.append('')
+        elif num1.is_zero and num2.is_negative:
+                self._descriptions.append('')
+        elif num1.is_positive and num2.is_zero:
+                self._descriptions.append('')
+        elif num1.is_negative and num2.is_zero:
+                self._descriptions.append('')
+        elif num1.is_zero and num2.is_zero:
+                self._descriptions.append('')
+        # with multiple args
+        if(len(args_stack) > 0):
+            result = Mul(self.compute(first_arg)*self.compute(second_arg),*args_stack,evaluate=False)
+            return result
+        # with two args
+        return self.compute(first_arg)*self.compute(second_arg)
+
+
+    def _num_frac_mul(self,num, frac, args_stack):
+        self._op_done = True
+        frac_tuple = frac.as_numer_denom()
+        # with multiple args
+        self._descriptions.append('')
+        numer = Mul(num,frac_tuple[0],evaluate=False)
+        denom = frac_tuple[1]
+        frac_new = None
+        if frac_tuple[0]==1:
+            if not self._converted_to_rational:
+                numer = simplify(numer)
+                frac_new = Rational(numer,denom,gcd=1)
+                self._converted_to_rational = True
+            else:
+                frac_new = self._generate_fraction(numer,denom,evaluate=False)
+                self._converted_to_rational = False
+        else:
+            frac_new = self._generate_fraction(numer,denom,evaluate=False)
+
+        if(len(args_stack) > 0):
+            result = Mul(frac_new,*args_stack,evaluate=False)
+            return result
+        # with two args
+        return frac_new
+
+    def _frac_frac_mul(self,first_arg, second_arg, args_stack):
+        self._op_done = True
+        frac1 = first_arg.as_numer_denom()
+        frac2 = second_arg.as_numer_denom()
+        # with multiple args
+        self._descriptions.append('')
+        numer = Mul(frac1[0],frac2[0],evaluate=False)
+        denom = Mul(frac1[1],frac2[1],evaluate=False)
+        frac = self._generate_fraction(numer,denom,evaluate=False)
+        if(len(args_stack) > 0):
+            result = Mul(frac,*args_stack,evaluate=False)
+            return result
+        # with two args
+        return frac
+
+    def _root_root_mul(self):
+        pass
+
+    def _root_root_add(self):
+        pass
+
+    def _power_power_add(self):
+        pass
+
+    def _power_number_add(self):
+        pass
+
+    def _power_numer_mul(self):
+        pass
+
+    def _num_frac_add(self,num, frac, args_stack):
+        self._op_done = True
+        frac1 = frac
+        frac2 = self._generate_fraction(num,1,evaluate=False)
+        # with multiple args
+        self._descriptions.append('frac')
+        if(len(args_stack) > 0):
+            result = Add(frac1,frac2,*args_stack,evaluate=False)
+            return result
+        # with two args
+        return Add(frac1,frac2,evaluate=False)
+
+    def _frac_frac_add(self,first_arg, second_arg, args_stack):
+        frac1 = first_arg.as_numer_denom()
+        frac2 = second_arg.as_numer_denom()
+        if frac1[1] == frac2[1]:
+            self._op_done = True
+            # with multiple args
+            self._descriptions.append('frac')
+            numer = Add(frac1[0],frac2[0],evaluate=False)
+            denom = frac1[1]
+            frac = self._generate_fraction(numer,denom,evaluate=False)
+            if(len(args_stack) > 0):
+                result = Add(frac,*args_stack,evaluate=False)
+                return result
+            # with two args
+            return frac
+        else:
+            self._op_done  = True
+            common_denom = Mul(frac1[1],frac2[1],evaluate=False)
+            numer_1 = Mul(frac1[0],frac2[1],evaluate=False)
+            numer_2 =  Mul(frac2[0],frac1[1],evaluate=False)
+            frac1_new = self._generate_fraction(numer_1,common_denom,evaluate=False)
+            frac2_new = self._generate_fraction(numer_2,common_denom,evaluate=False)
+            self._descriptions.append('')
+            if(len(args_stack) > 0):
+                result = Add(frac1_new,frac2_new,*args_stack,evaluate=False)
+                return result
+            # with two args
+            return Add(frac1_new,frac2_new,evaluate=False)
+
+
     def _num_num_add(self,first_arg, second_arg, args_stack):
         self._op_done = True
         num1,num2 = first_arg,second_arg
@@ -219,7 +379,7 @@ class SimplifyArithmetic(object):
         if(len(args_stack) > 0):
             result = Add(self.compute(first_arg)+self.compute(second_arg),*args_stack,evaluate=False)
             return result
-                # with two args
+        # with two args
         return self.compute(first_arg)+self.compute(second_arg)
 
 
@@ -244,11 +404,15 @@ class SimplifyArithmetic(object):
                     return True
         elif isinstance(node,Rational):
             if isinstance(node.p,int) and isinstance(node.q,int):
-                return True
+                if node.q != 1:
+                    return True
         return False
     def _is_number(self,node):
-        return isinstance(node,Number)
-    
+        if isinstance(node,Number):
+            if isinstance(node,Rational):
+                if node.q ==1:
+                    return True   
+        return False
     def _is_power(self,node):
         if isinstance(node,Pow) :
             if isinstance(node.args[0],Number):
@@ -271,12 +435,13 @@ class SimplifyArithmetic(object):
             return 'root'
         else:
             return type(node)
-    
+        
     # functions for generating a certain expr
-    def _generate_fraction(self,num,denom, evaluate =False ):
-        if isinstance(num,int) and isinstance(denom,int):
-            return sympify(f'{num}/{denom}',evaluate=evaluate)
-        return Mul(num,Pow(denom,-1,evaluate=evaluate),evaluate=evaluate)
+    def _generate_fraction(self,num,denom, evaluate =False ):  
+        if self._is_number(num) and self._is_number(denom):
+            return Rational(num,denom,gcd=1)
+        else:   
+            return Mul(num,Pow(denom,-1,evaluate=evaluate),evaluate=evaluate)
 
     def _generate_root(self,number, rank ,evaluate = False):
         if isinstance(number,Number):
@@ -298,8 +463,6 @@ class SimplifyArithmetic(object):
                     continue
                 elif self._is_fraction(arg):
                     continue
-                elif self._is_number(arg):
-                    continue
                 elif self._is_power(arg):
                     continue
                 elif self._is_root(arg):
@@ -308,4 +471,3 @@ class SimplifyArithmetic(object):
                     return False
             return True
         return False
-  

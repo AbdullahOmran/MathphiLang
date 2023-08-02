@@ -12,7 +12,7 @@ from sympy import srepr
 from sympy.core.add import Add
 from sympy.core.mul import Mul
 
-t = Token(TokenType.EXPR, r'1+2-0+(3-4)+1')
+t = Token(TokenType.EXPR, r'1/3+3/2')
 expr = Expr(t)
 expr.parse()
 #print(srepr(expr.parsed_latex))
