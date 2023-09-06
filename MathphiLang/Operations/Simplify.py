@@ -56,8 +56,7 @@ class SimplifyArithmetic(object):
         self.explainer = explainer
         self.explainer.extractArithmeticDes()
         self.mathSequence = MathSequence()
-        # this var is used for the case of (2*1)/3 to terminate infinite loop by converting that frac to rational
-        self._converted_to_rational = False
+
     def compute(self,node = None):
         if node is None:
             node = self.current_expr
@@ -146,7 +145,7 @@ class SimplifyArithmetic(object):
             
             elif  self._is_fraction(first_arg) and self._is_number(second_arg) and not self._op_done:
                 return self._num_frac_mul(second_arg,first_arg,args_stack)
-            
+                
             elif  self._is_fraction(second_arg) and self._is_number(first_arg) and not self._op_done:
                 return self._num_frac_mul(first_arg,second_arg,args_stack)
             
@@ -255,18 +254,12 @@ class SimplifyArithmetic(object):
         self._op_done = True
         frac_tuple = frac.as_numer_denom()
         # with multiple args
-        self._descriptions.append('')
         numer = Mul(num,frac_tuple[0],evaluate=False)
         denom = frac_tuple[1]
         frac_new = None
         if frac_tuple[0]==1:
-            if not self._converted_to_rational:
-                numer = simplify(numer)
-                frac_new = Rational(numer,denom,gcd=1)
-                self._converted_to_rational = True
-            else:
-                frac_new = self._generate_fraction(numer,denom,evaluate=False)
-                self._converted_to_rational = False
+            numer = simplify(numer)
+            frac_new = Rational(numer,denom,gcd=1)
         else:
             frac_new = self._generate_fraction(numer,denom,evaluate=False)
 
